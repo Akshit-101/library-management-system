@@ -1,0 +1,26 @@
+name: library-management-system
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    depends_on: # just to ensure that before adminer start, db is started
+      - db
+    ports:
+      - 8080:8080
+
+volumes:
+  postgres_data:
