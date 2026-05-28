@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Library, Plus, Search } from 'lucide-react';
+import { Menu, X, Library } from 'lucide-react';
 import api from '../utils/api';
 
 const navItems = [
@@ -92,27 +92,6 @@ const Navbar = () => {
             ))}
           </nav>
 
-          {/* Right: Quick Action & Options */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Quick Search trigger placeholder */}
-            <div className="relative group">
-              <Search className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition-colors duration-200" />
-              <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg p-2 opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-xl">
-                <span className="text-xs text-gray-400 block px-2 py-1">Press ⌘K to Search</span>
-              </div>
-            </div>
-
-            {/* Quick Action Button */}
-            <button
-              onClick={() => navigate('/issuances')}
-              className="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-xs font-semibold text-white rounded-full group bg-gradient-to-br from-violet-600 to-fuchsia-600 hover:text-white focus:ring-2 focus:outline-none focus:ring-violet-800 cursor-pointer shadow-lg shadow-violet-500/10 hover:shadow-violet-500/25 active:scale-95 transition-all duration-200"
-            >
-              <span className="relative px-3.5 py-1.5 transition-all ease-in duration-75 bg-gray-950 rounded-full group-hover:bg-opacity-0 flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5 text-violet-400 group-hover:text-white transition-colors duration-200" />
-                Quick Issue
-              </span>
-            </button>
-          </div>
 
           {/* Mobile menu button */}
           <div className="flex md:hidden">
@@ -171,18 +150,6 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <div className="absolute bottom-6 left-6 right-6 border-t border-gray-800/80 pt-6">
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              navigate('/issuances');
-            }}
-            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 active:scale-95 transition-all duration-200"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Quick Issue
-          </button>
-        </div>
       </div>
     </header>
   );
