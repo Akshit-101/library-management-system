@@ -32,7 +32,6 @@ const Issuances = () => {
     book_id: '',
     issuance_member: '',
     target_return_date: '',
-    issued_by: '',
     issuance_status: 'Issued',
     actual_return_date: ''
   });
@@ -62,6 +61,18 @@ const Issuances = () => {
     fetchData();
   }, []);
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const dateObj = new Date(year, month - 1, day);
+      return dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    return new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   // Filter issuances dynamically in-memory
   const filteredIssuances = issuances.filter((item) => {
     const matchesSearch = 
@@ -89,7 +100,6 @@ const Issuances = () => {
       book_id: availableBooks[0]?.book_id || '',
       issuance_member: activeMembers[0]?.mem_id || '',
       target_return_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 14 days loan
-      issued_by: '',
       issuance_status: 'Issued',
       actual_return_date: ''
     });
@@ -103,7 +113,6 @@ const Issuances = () => {
       book_id: item.book_id,
       issuance_member: item.issuance_member,
       target_return_date: item.target_return_date ? item.target_return_date.split('T')[0] : '',
-      issued_by: item.issued_by,
       issuance_status: item.issuance_status,
       actual_return_date: item.actual_return_date ? item.actual_return_date.split('T')[0] : ''
     });
@@ -115,7 +124,9 @@ const Issuances = () => {
     setError(null);
     setAlertMsg(null);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const offset = new Date().getTimezoneOffset();
+      const localDate = new Date(Date.now() - (offset * 60 * 1000));
+      const today = localDate.toISOString().split('T')[0];
       const res = await api.put(`/issuance/${item.issuance_id}`, {
         issuance_status: 'Returned',
         actual_return_date: today
@@ -151,8 +162,7 @@ const Issuances = () => {
         const res = await api.post('/issuance', {
           book_id: parseInt(formData.book_id),
           issuance_member: parseInt(formData.issuance_member),
-          target_return_date: `${formData.target_return_date}T00:00:00.000Z`,
-          issued_by: formData.issued_by
+          target_return_date: formData.target_return_date
         });
         
         setIssuances(prev => [res.data, ...prev]);
@@ -176,6 +186,10 @@ const Issuances = () => {
   const totalCount = issuances.length;
   const activeCount = issuances.filter(i => i.issuance_status === 'Issued' || i.issuance_status === 'Overdue').length;
   const returnedCount = issuances.filter(i => i.issuance_status === 'Returned').length;
+
+  const activeLoans = filteredIssuances.filter(i => i.issuance_status === 'Issued' || i.issuance_status === 'Overdue');
+  const returnedHistory = filteredIssuances.filter(i => i.issuance_status === 'Returned');
+  const lostHistory = filteredIssuances.filter(i => i.issuance_status === 'Lost');
 
   return (
     <main className="min-h-screen bg-[#030712] pt-28 pb-16 px-4 sm:px-6 lg:px-8 text-gray-100">
@@ -285,15 +299,90 @@ const Issuances = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredIssuances.map((item) => (
-              <IssuanceCard
-                key={item.issuance_id}
-                issuance={item}
-                onReturn={handleQuickReturn}
-                onEdit={handleOpenEdit}
-              />
-            ))}
+          <div className="space-y-12">
+            {/* 1. Active Loans Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 border-b border-gray-800/60 pb-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                Active Loans ({activeLoans.length})
+              </h2>
+              {activeLoans.length === 0 ? (
+                <p className="text-sm text-gray-500 py-6">No active loans or overdue items.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeLoans.map((item) => (
+                    <IssuanceCard
+                      key={item.issuance_id}
+                      issuance={item}
+                      onReturn={handleQuickReturn}
+                      onEdit={handleOpenEdit}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Returned History Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 border-b border-gray-800/60 pb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Returned History ({returnedHistory.length})
+              </h2>
+              {returnedHistory.length === 0 ? (
+                <p className="text-sm text-gray-500 py-6">No returned transactions found.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {returnedHistory.map((item) => (
+                    <div key={item.issuance_id} className="flex items-center justify-between bg-gray-900/30 hover:bg-gray-900/50 border border-gray-800/60 hover:border-emerald-500/20 rounded-2xl p-4 text-xs text-gray-300 transition-all duration-200 shadow-md">
+                      <div className="flex flex-col min-w-0 pr-2 space-y-1">
+                        <span className="font-bold text-white truncate text-sm">{item.book_name}</span>
+                        <span className="text-gray-400">Borrower: <span className="text-cyan-400 font-semibold">{item.mem_name}</span></span>
+                        <span className="text-[10px] text-gray-500">Issued: {formatDate(item.issuance_date)}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0 flex flex-col items-end space-y-1">
+                        <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Returned
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-mono">
+                          on {formatDate(item.actual_return_date)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Lost History Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 border-b border-gray-800/60 pb-2">
+                <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                Lost Items ({lostHistory.length})
+              </h2>
+              {lostHistory.length === 0 ? (
+                <p className="text-sm text-gray-500 py-6">No lost items recorded.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {lostHistory.map((item) => (
+                    <div key={item.issuance_id} className="flex items-center justify-between bg-gray-900/30 hover:bg-gray-900/50 border border-gray-800/60 hover:border-rose-500/20 rounded-2xl p-4 text-xs text-gray-300 transition-all duration-200 shadow-md">
+                      <div className="flex flex-col min-w-0 pr-2 space-y-1">
+                        <span className="font-bold text-white truncate text-sm">{item.book_name}</span>
+                        <span className="text-gray-400">Borrower: <span className="text-rose-400/80 font-semibold">{item.mem_name}</span></span>
+                        <span className="text-[10px] text-gray-500">Issued: {formatDate(item.issuance_date)}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0 flex flex-col items-end space-y-1">
+                        <span className="text-[9px] text-rose-400 font-bold bg-rose-950/40 border border-rose-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Lost
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-mono">
+                          Target: {formatDate(item.target_return_date)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -28,11 +28,11 @@ const Books = () => {
   // Modals States
   const [activeBookDetails, setActiveBookDetails] = useState(null);
   const [showUpsertModal, setShowUpsertModal] = useState(false);
-  const [editingBook, setEditingBook] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
     book_name: '',
+    book_author: '',
     book_cat_id: '',
     book_collection_id: '',
     book_launch_date: '',
@@ -68,6 +68,7 @@ const Books = () => {
   const filteredBooks = books.filter((book) => {
     const matchesSearch = 
       book.book_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.book_author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       book.book_publisher?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = selectedCategory === '' || String(book.book_cat_id) === String(selectedCategory);
@@ -78,9 +79,9 @@ const Books = () => {
 
   // Open Add Book form
   const handleOpenAdd = () => {
-    setEditingBook(null);
     setFormData({
       book_name: '',
+      book_author: '',
       book_cat_id: categories[0]?.cat_id || '',
       book_collection_id: collections[0]?.collection_id || '',
       book_launch_date: new Date().toISOString().split('T')[0],
@@ -89,49 +90,26 @@ const Books = () => {
     setShowUpsertModal(true);
   };
 
-  // Open Edit Name form
-  const handleOpenEdit = (book) => {
-    setEditingBook(book);
-    setFormData({
-      book_name: book.book_name,
-      book_cat_id: book.book_cat_id,
-      book_collection_id: book.book_collection_id,
-      book_launch_date: book.book_launch_date ? book.book_launch_date.split('T')[0] : '',
-      book_publisher: book.book_publisher || ''
-    });
-    setShowUpsertModal(true);
-  };
-
-  // Handle Form Submission (Add or Edit)
+  // Handle Form Submission (Add only)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.book_name.trim()) return;
+    if (!formData.book_name.trim() || !formData.book_author.trim()) return;
 
     setSubmitting(true);
     setAlertMsg(null);
     try {
-      if (editingBook) {
-        // Edit Mode: only update name
-        const res = await api.put(`/book/${editingBook.book_id}`, {
-          book_name: formData.book_name
-        });
-        
-        // Update local list state
-        setBooks(prev => prev.map(b => b.book_id === editingBook.book_id ? res.data : b));
-        showToast(`Book name successfully updated to "${res.data.book_name}"`);
-      } else {
-        // Add Mode: insert new book
-        const res = await api.post('/book', {
-          book_name: formData.book_name,
-          book_cat_id: parseInt(formData.book_cat_id),
-          book_collection_id: formData.book_collection_id ? parseInt(formData.book_collection_id) : null,
-          book_launch_date: formData.book_launch_date ? `${formData.book_launch_date}T00:00:00.000Z` : null,
-          book_publisher: formData.book_publisher
-        });
-        
-        setBooks(prev => [res.data, ...prev]);
-        showToast(`Book "${res.data.book_name}" successfully added!`);
-      }
+      // Add Mode: insert new book
+      const res = await api.post('/book', {
+        book_name: formData.book_name,
+        book_author: formData.book_author,
+        book_cat_id: parseInt(formData.book_cat_id),
+        book_collection_id: formData.book_collection_id ? parseInt(formData.book_collection_id) : null,
+        book_launch_date: formData.book_launch_date ? formData.book_launch_date : null,
+        book_publisher: formData.book_publisher
+      });
+      
+      setBooks(prev => [res.data, ...prev]);
+      showToast(`Book "${res.data.book_name}" successfully added!`);
       setShowUpsertModal(false);
     } catch (err) {
       console.error(err);
@@ -279,7 +257,6 @@ const Books = () => {
               <BookCard
                 key={book.book_id}
                 book={book}
-                onEdit={handleOpenEdit}
                 onView={setActiveBookDetails}
               />
             ))}
@@ -292,12 +269,11 @@ const Books = () => {
           onClose={() => setActiveBookDetails(null)}
         />
 
-        {/* Modal: Upsert Form (Create or Edit Name) */}
+        {/* Modal: Upsert Form (Create) */}
         <BookUpsertModal
           isOpen={showUpsertModal}
           onClose={() => setShowUpsertModal(false)}
           onSubmit={handleSubmit}
-          editingBook={editingBook}
           formData={formData}
           setFormData={setFormData}
           categories={categories}

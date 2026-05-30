@@ -4,7 +4,6 @@ const {
     getAllbooks,
     getbook,
     postbook,
-    updatebook,
     getAllCategories,
     getAllCollections
 } = require('../controllers/book.js')
@@ -14,6 +13,5 @@ router.get("/categories", getAllCategories)
 router.get("/collections", getAllCollections)
 router.get("/:id",  getbook)        
 router.post("/",  postbook)      
-router.put("/:id",  updatebook)     
 
 module.exports = router

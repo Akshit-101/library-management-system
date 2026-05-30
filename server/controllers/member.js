@@ -83,7 +83,7 @@ const postMember = async (req, res) => {
 };
 
 const updateMember = async (req, res) => {
-    const { mem_name, membership_status } = req.body
+    const { mem_name, mem_phone, mem_email, membership_status } = req.body
     const { id } = req.params
 
     try {
@@ -92,8 +92,8 @@ const updateMember = async (req, res) => {
             await client.query('BEGIN');
 
             const data = await client.query(
-                'UPDATE member_table SET mem_name = $1 WHERE mem_id = $2 RETURNING *',
-                [mem_name, id]
+                'UPDATE member_table SET mem_name = $1, mem_phone = $2, mem_email = $3 WHERE mem_id = $4 RETURNING *',
+                [mem_name, mem_phone, mem_email, id]
             );
 
             if (data.rowCount === 0) {

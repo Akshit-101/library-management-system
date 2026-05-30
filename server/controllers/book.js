@@ -44,11 +44,11 @@ const getbook = async (req, res) => {
 }
 
 const postbook = async (req, res) => {
-    const { book_name, book_cat_id, book_collection_id, book_launch_date, book_publisher } = req.body
+    const { book_name, book_author, book_cat_id, book_collection_id, book_launch_date, book_publisher } = req.body
     try {
         const data = await pool.query(
-            'INSERT INTO book_table (book_name, book_cat_id, book_collection_id, book_launch_date, book_publisher) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [book_name, book_cat_id, book_collection_id, book_launch_date, book_publisher]
+            'INSERT INTO book_table (book_name, book_author, book_cat_id, book_collection_id, book_launch_date, book_publisher) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [book_name, book_author, book_cat_id, book_collection_id, book_launch_date, book_publisher]
         )
 
 
@@ -63,32 +63,6 @@ const postbook = async (req, res) => {
         return res.status(201).json(result.rows[0]);
     } catch (err) {
         return res.status(500).json({ error: err.message });
-    }
-}
-
-const updatebook = async (req, res) => {
-    const { book_name } = req.body
-    const { id } = req.params
-
-    try {
-        const data = await pool.query('UPDATE book_table SET book_name = $1 WHERE book_id = $2 RETURNING *', [book_name, id])
-
-        if (data.rowCount === 0) {
-            return res.status(404).json({ message: "book not found" })
-        }
-
-        const result = await pool.query(`
-            SELECT b.*, c.cat_name, col.collection_name
-            FROM book_table b
-            LEFT JOIN category_table c ON b.book_cat_id = c.cat_id
-            LEFT JOIN collection_table col ON b.book_collection_id = col.collection_id
-            WHERE b.book_id = $1
-        `, [id])
-
-        return res.status(200).json(result.rows[0])
-
-    } catch (err) {
-        return res.status(500).json({ error: err.message })
     }
 }
 
@@ -114,7 +88,6 @@ module.exports = {
     getAllbooks,
     getbook,
     postbook,
-    updatebook,
     getAllCategories,
     getAllCollections
 }

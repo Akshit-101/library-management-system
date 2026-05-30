@@ -44,6 +44,10 @@ const BookCard = ({ book, onEdit, onView }) => {
         <div className="space-y-1.5 text-xs text-gray-400 pt-2">
           <div className="flex items-center">
             <User className="w-3.5 h-3.5 mr-2 text-gray-500" />
+            <span>Author: <span className="text-gray-300 font-medium">{book.book_author || 'N/A'}</span></span>
+          </div>
+          <div className="flex items-center">
+            <User className="w-3.5 h-3.5 mr-2 text-gray-500" />
             <span>Publisher: <span className="text-gray-300 font-medium">{book.book_publisher || 'N/A'}</span></span>
           </div>
           <div className="flex items-center">
@@ -57,13 +61,6 @@ const BookCard = ({ book, onEdit, onView }) => {
       <div className="flex items-center justify-between border-t border-gray-800/60 pt-4 mt-6">
         <span className="text-[10px] text-gray-500 font-mono">ID: #{book.book_id}</span>
         <div className="flex space-x-2">
-          <button
-            onClick={() => onEdit(book)}
-            className="p-2 bg-gray-950/60 hover:bg-violet-600/10 text-gray-400 hover:text-violet-400 rounded-xl border border-gray-800 hover:border-violet-500/30 transition-all cursor-pointer"
-            title="Edit Title"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
           <button
             onClick={() => onView(book)}
             className="p-2 bg-gray-950/60 hover:bg-fuchsia-600/10 text-gray-400 hover:text-fuchsia-400 rounded-xl border border-gray-800 hover:border-fuchsia-500/30 transition-all cursor-pointer"
