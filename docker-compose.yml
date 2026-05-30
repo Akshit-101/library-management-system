@@ -2,25 +2,54 @@ name: library-management-system
 
 services:
   db:
-    image: postgres:16
+    image: postgres:16.6-alpine
     container_name: postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  adminer:
-    image: adminer:4
+  server:
+    build: ./server
+    container_name: server
     restart: unless-stopped
-    depends_on: # just to ensure that before adminer start, db is started
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    depends_on:
       - db
+    environment:
+      - PORT=3000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - API_KEY=${API_KEY}
+
+  client:
+    build: ./client
+    container_name: client
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
     ports:
-      - 8080:8080
+      - 80:8080
+    depends_on:
+      - server
 
 volumes:
   postgres_data:
+

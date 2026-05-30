@@ -64,7 +64,6 @@ const getissuance = async (req, res) => {
 const postissuance = async (req, res) => {
     const { book_id, issuance_member, target_return_date, issued_by } = req.body
     try {
-        // Check if book is already currently checked out or lost
         const activeCheck = await pool.query(
             "SELECT 1 FROM issuance_table WHERE book_id = $1 AND issuance_status IN ('Issued', 'Overdue', 'Lost')",
             [book_id]
@@ -74,9 +73,11 @@ const postissuance = async (req, res) => {
             return res.status(400).json({ error: "This book is currently issued and has not been returned." });
         }
 
+        const staffName = issued_by || 'Admin';
+
         const data = await pool.query(
             'INSERT INTO issuance_table (book_id, issuance_member, target_return_date, issued_by) VALUES ($1, $2, $3, $4) RETURNING *',
-            [book_id, issuance_member, target_return_date, issued_by]
+            [book_id, issuance_member, target_return_date, staffName]
         )
 
         const result = await pool.query(`
@@ -108,6 +109,20 @@ const updateissuance = async (req, res) => {
     const { id } = req.params
 
     try {
+        const currentCheck = await pool.query(
+            'SELECT issuance_status FROM issuance_table WHERE issuance_id = $1',
+            [id]
+        );
+
+        if (currentCheck.rowCount === 0) {
+            return res.status(404).json({ message: "issuance not found" })
+        }
+
+        const currentStatus = currentCheck.rows[0].issuance_status;
+        if (currentStatus === 'Returned' || currentStatus === 'Lost') {
+            return res.status(400).json({ error: "Cannot update historical checkouts that are already returned or lost." })
+        }
+
         const data = await pool.query(
             'UPDATE issuance_table SET issuance_status = $1, actual_return_date = $2 WHERE issuance_id = $3 RETURNING *',
             [issuance_status, actual_return_date, id]

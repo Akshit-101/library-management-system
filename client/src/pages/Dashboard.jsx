@@ -6,6 +6,15 @@ import api from '../utils/api';
 const Dashboard = () => {
   const navigate = useNavigate();
   
+  // Safe helper to get local YYYY-MM-DD string
+  const getLocalDateString = (date = new Date()) => {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
+
   // Data States
   const [stats, setStats] = useState({
     booksCount: 0,
@@ -18,7 +27,7 @@ const Dashboard = () => {
   const [topBorrowedList, setTopBorrowedList] = useState([]);
   const [neverBorrowedList, setNeverBorrowedList] = useState([]);
   
-  const [activeTab, setActiveTab] = useState('outstanding');
+  const [activeTab, setActiveTab] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,13 +39,16 @@ const Dashboard = () => {
       const [booksRes, membersRes, outstandingRes, topBorrowedRes, neverBorrowedRes] = await Promise.all([
         api.get('/book'),
         api.get('/member'),
-        api.get('/task/outstanding'),
+        api.get(`/task/outstanding?date=${selectedDate}`),
         api.get('/task/top-borrowed'),
         api.get('/task/never-borrowed')
       ]);
 
       const outstanding = outstandingRes.data;
-      const overdue = outstanding.filter(o => new Date(o.target_return_date) < new Date());
+      const overdue = outstanding.filter(o => {
+        const targetClean = o.target_return_date ? o.target_return_date.split('T')[0] : '';
+        return targetClean < selectedDate;
+      });
 
       setStats({
         booksCount: booksRes.data.length,
@@ -59,29 +71,55 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [selectedDate]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
+    const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const dateObj = new Date(year, month - 1, day);
+      return dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
     return new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   const isOverdue = (targetDateStr) => {
-    return new Date(targetDateStr) < new Date();
+    const targetClean = targetDateStr ? targetDateStr.split('T')[0] : '';
+    return targetClean < selectedDate;
   };
+
+  const pendingList = outstandingList.filter(item => {
+    const cleanTarget = item.target_return_date ? item.target_return_date.split('T')[0] : '';
+    return cleanTarget === selectedDate;
+  });
 
   return (
     <main className="min-h-screen bg-[#030712] pt-28 pb-16 px-4 sm:px-6 lg:px-8 text-gray-100">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header Section */}
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-            System Dashboard
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Real-time library statistics, catalog metrics, and lending insights.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+              System Dashboard
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">
+              Real-time library statistics, catalog metrics, and lending insights.
+            </p>
+          </div>
+
+          {/* Given Day Date Picker */}
+          <div className="flex items-center space-x-3 bg-gray-900/60 border border-gray-800 rounded-2xl px-4 py-2 w-fit">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Given Day:</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-gray-950/60 border border-gray-800 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors cursor-pointer"
+            />
+          </div>
         </div>
 
         {error && (
@@ -167,14 +205,24 @@ const Dashboard = () => {
                   {/* Tab Selector Buttons */}
                   <div className="flex border-b border-gray-800/60 pb-3 mb-6 space-x-4 overflow-x-auto">
                     <button
-                      onClick={() => setActiveTab('outstanding')}
+                      onClick={() => setActiveTab('pending')}
                       className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                        activeTab === 'outstanding'
+                        activeTab === 'pending'
                           ? 'border-cyan-500 text-cyan-400'
                           : 'border-transparent text-gray-400 hover:text-white'
                       }`}
                     >
-                      Outstanding Books
+                      Pending Returns
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('outstanding')}
+                      className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'outstanding'
+                          ? 'border-blue-500 text-blue-400'
+                          : 'border-transparent text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Outstanding (Point-in-Time)
                     </button>
                     <button
                       onClick={() => setActiveTab('top-borrowed')}
@@ -200,6 +248,37 @@ const Dashboard = () => {
 
                   {/* Tab content rendering */}
                   <div className="overflow-x-auto max-h-[350px] overflow-y-auto pr-1">
+                    {activeTab === 'pending' && (
+                      pendingList.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-10 text-center">No books pending return on this day.</p>
+                      ) : (
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="text-gray-400 border-b border-gray-800/60 pb-2">
+                              <th className="pb-3 font-semibold uppercase tracking-wider">Book Name</th>
+                              <th className="pb-3 font-semibold uppercase tracking-wider">Author</th>
+                              <th className="pb-3 font-semibold uppercase tracking-wider">Borrower</th>
+                              <th className="pb-3 font-semibold uppercase tracking-wider">Issued Date</th>
+                              <th className="pb-3 font-semibold uppercase tracking-wider">Target Return</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pendingList.map((item, idx) => (
+                              <tr key={idx} className="border-b border-gray-800/20 hover:bg-gray-800/10">
+                                <td className="py-3 font-bold text-white max-w-xs truncate pr-3">{item.book_name}</td>
+                                <td className="py-3 text-gray-300 pr-3">{item.author || 'N/A'}</td>
+                                <td className="py-3 font-medium text-cyan-400 pr-3">{item.member_name}</td>
+                                <td className="py-3 text-gray-400 font-mono pr-3">{formatDate(item.issued_date)}</td>
+                                <td className={`py-3 font-mono ${isOverdue(item.target_return_date) ? 'text-rose-400 font-bold' : 'text-gray-400'}`}>
+                                  {formatDate(item.target_return_date)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )
+                    )}
+
                     {activeTab === 'outstanding' && (
                       outstandingList.length === 0 ? (
                         <p className="text-sm text-gray-500 py-10 text-center">No outstanding loans right now.</p>

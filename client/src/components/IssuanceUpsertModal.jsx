@@ -88,20 +88,7 @@ const IssuanceUpsertModal = ({
                 />
               </div>
 
-              {/* Issued By */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Issued By (Staff Name)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.issued_by}
-                  onChange={(e) => setFormData({ ...formData, issued_by: e.target.value })}
-                  placeholder="e.g. Staff_Sarah"
-                  className="w-full bg-gray-950/60 border border-gray-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
-                />
-              </div>
+
             </>
           ) : (
             <>
@@ -129,7 +116,9 @@ const IssuanceUpsertModal = ({
                   value={formData.issuance_status}
                   onChange={(e) => {
                     const status = e.target.value;
-                    const returnDate = status === 'Returned' ? new Date().toISOString().split('T')[0] : '';
+                    const offset = new Date().getTimezoneOffset();
+                    const localDate = new Date(Date.now() - (offset * 60 * 1000));
+                    const returnDate = status === 'Returned' ? localDate.toISOString().split('T')[0] : '';
                     setFormData({
                       ...formData,
                       issuance_status: status,

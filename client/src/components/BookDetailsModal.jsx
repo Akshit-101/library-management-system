@@ -37,6 +37,10 @@ const BookDetailsModal = ({ book, onClose }) => {
               <span className="text-sm font-semibold text-white">{book.cat_name || 'N/A'}</span>
             </div>
             <div className="mt-2">
+              <span className="text-[10px] text-gray-400 block uppercase tracking-wider">Author</span>
+              <span className="text-sm font-medium text-white">{book.book_author || 'N/A'}</span>
+            </div>
+            <div className="mt-2">
               <span className="text-[10px] text-gray-400 block uppercase tracking-wider">Publisher</span>
               <span className="text-sm font-medium text-white">{book.book_publisher || 'N/A'}</span>
             </div>

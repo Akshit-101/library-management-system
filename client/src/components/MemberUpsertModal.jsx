@@ -52,15 +52,10 @@ const MemberUpsertModal = ({
             <input
               type="email"
               required
-              disabled={!!editingMember}
               value={formData.mem_email}
               onChange={(e) => setFormData({ ...formData, mem_email: e.target.value })}
               placeholder="e.g. john@example.com"
-              className={`w-full border rounded-xl px-4 py-2 text-sm focus:outline-none transition-colors ${
-                editingMember 
-                  ? 'bg-gray-950/20 border-gray-900 text-gray-500 cursor-not-allowed' 
-                  : 'bg-gray-950/60 border-gray-800 text-white focus:border-violet-500'
-              }`}
+              className="w-full bg-gray-950/60 border border-gray-800 text-white focus:border-violet-500 rounded-xl px-4 py-2 text-sm focus:outline-none transition-colors"
             />
           </div>
 
@@ -72,15 +67,10 @@ const MemberUpsertModal = ({
             <input
               type="text"
               required
-              disabled={!!editingMember}
               value={formData.mem_phone}
               onChange={(e) => setFormData({ ...formData, mem_phone: e.target.value })}
               placeholder="e.g. +1555123456"
-              className={`w-full border rounded-xl px-4 py-2 text-sm focus:outline-none transition-colors ${
-                editingMember 
-                  ? 'bg-gray-950/20 border-gray-900 text-gray-500 cursor-not-allowed' 
-                  : 'bg-gray-950/60 border-gray-800 text-white focus:border-violet-500'
-              }`}
+              className="w-full bg-gray-950/60 border border-gray-800 text-white focus:border-violet-500 rounded-xl px-4 py-2 text-sm focus:outline-none transition-colors"
             />
           </div>
 

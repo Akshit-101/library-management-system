@@ -100,9 +100,11 @@ const Members = () => {
     setAlertMsg(null);
     try {
       if (editingMember) {
-        // Edit Mode: call PATCH route (updating name & status)
+        // Edit Mode: call PATCH route (updating all fields)
         const res = await api.patch(`/member/${editingMember.mem_id}`, {
           mem_name: formData.mem_name,
+          mem_email: formData.mem_email,
+          mem_phone: formData.mem_phone,
           membership_status: formData.membership_status
         });
         
